@@ -17,5 +17,11 @@ app.use("/api/documents", documentRoutes);
 
 // Routes
 app.use("/api", healthRoutes);
+app.use((err, req, res, next) => {
+  console.error("Global Error:", err);
 
+  res.status(err.status || 500).json({
+    error: err.message || "Internal Server Error",
+  });
+});
 export default app;
