@@ -44,7 +44,12 @@ router.get("/", async (req, res) => {
     const result = await pool.query(
       "SELECT * FROM documents ORDER BY id DESC"
     );
-    res.json(result.rows);
+    res.json({
+      status: "success",
+      message: "Data fetched successfully",
+      data: result.rows,
+    });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Fetch failed" });
@@ -128,6 +133,46 @@ router.delete("/delete/:id", async (req, res) => {
     console.error(error);
     res.status(500).json({
       error: "Delete failed",
+    });
+  }
+});
+
+//uploadt multiple documents
+
+router.post("/upload-multiple", upload.array("files", 10), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        error: "No valid files uploaded",
+      });
+    }
+
+    const insertedDocuments = [];
+
+    for (const file of req.files) {
+      const { filename, originalname, path, size, mimetype } = file;
+
+      const result = await pool.query(
+        `INSERT INTO documents 
+         (filename, original_name, file_path, file_size, mime_type)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+        [filename, originalname, path, size, mimetype]
+      );
+
+      insertedDocuments.push(result.rows[0]);
+    }
+
+    res.status(201).json({
+      message: "Files uploaded successfully",
+      count: insertedDocuments.length,
+      documents: insertedDocuments,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Multi upload failed",
     });
   }
 });
